@@ -11,7 +11,7 @@ The first game is a minimal **15 Puzzle**:
 - click a square next to the gap to slide it,
 - shuffle/reset buttons,
 - move counter and solved message,
-- optional tiny synthesized tile-press sound,
+- optional tiny synthesized tile-press and blocked-move sounds,
 - local puzzle-state persistence across refreshes.
 
 The app is intentionally shaped like a future suite, but only one game is active for now.

@@ -1,5 +1,5 @@
 import { type CSSProperties, type PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { playTilePress } from '../../utils/sound';
+import { playBlockedMove, playTilePress } from '../../utils/sound';
 import {
   type Board,
   canMove,
@@ -70,16 +70,19 @@ export function FifteenPuzzle() {
 
   function slideSquare(square: PuzzleSquare) {
     if (!canMove(board, square.index)) {
+      if (soundEnabled) playBlockedMove();
       setLastNopeIndex(square.index);
       setMessage('That square is stuck. Try one touching the blank space.');
       return;
     }
 
+    if (soundEnabled) playTilePress();
     applyMove(moveTile(board, square.index), 'Nice slide.');
   }
 
   function dropSquare(square: PuzzleSquare) {
     const tileIndex = board.indexOf(square.tile);
+    if (soundEnabled) playTilePress();
     applyMove(swapTileWithEmpty(board, tileIndex), 'Nice drop.');
   }
 
@@ -131,7 +134,7 @@ export function FifteenPuzzle() {
   }
 
   function pressSquare(square: PuzzleSquare, event: PointerEvent<HTMLButtonElement>) {
-    if (event.button === 0 && soundEnabled) {
+    if (dragMode && event.button === 0 && soundEnabled) {
       playTilePress();
     }
 
