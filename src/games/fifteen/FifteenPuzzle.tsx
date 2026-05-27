@@ -139,11 +139,11 @@ export function FifteenPuzzle() {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
-    const droppedOnGap = isPointInElement(event.clientX, event.clientY, gapRef.current);
+    const droppedOnGap = elementsOverlap(event.currentTarget, gapRef.current);
     setActiveDrag(null);
 
     if (!droppedOnGap) {
-      setMessage('Almost. Let go on the moon gap.');
+      setMessage('Almost. Drop the tile so it touches the moon gap.');
       return;
     }
 
@@ -250,9 +250,16 @@ function squareStyle(index: number, drag?: ActiveDrag | null) {
   } as CSSProperties;
 }
 
-function isPointInElement(x: number, y: number, element: HTMLElement | null) {
-  if (!element) return false;
+function elementsOverlap(firstElement: HTMLElement, secondElement: HTMLElement | null) {
+  if (!secondElement) return false;
 
-  const rect = element.getBoundingClientRect();
-  return x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom;
+  const first = firstElement.getBoundingClientRect();
+  const second = secondElement.getBoundingClientRect();
+
+  return (
+    first.left < second.right &&
+    first.right > second.left &&
+    first.top < second.bottom &&
+    first.bottom > second.top
+  );
 }
