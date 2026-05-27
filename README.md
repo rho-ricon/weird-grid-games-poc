@@ -2,6 +2,8 @@
 
 A tiny Bun + Vite + React prototype for kid-friendly square-grid games.
 
+Live app: https://rho-ricon.github.io/weird-grid-games-poc/
+
 The first game is a minimal **15 Puzzle**:
 
 - one 4×4 grid,
