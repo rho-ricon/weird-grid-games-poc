@@ -1,4 +1,4 @@
-import { type CSSProperties, type PointerEvent, useMemo, useRef, useState } from 'react';
+import { type CSSProperties, type PointerEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { playTilePress } from '../../utils/sound';
 import {
   type Board,
@@ -26,13 +26,26 @@ type ActiveDrag = {
   y: number;
 };
 
+type SavedPuzzle = {
+  board: Board;
+  moves: number;
+};
+
+const puzzleStorageKey = 'weird-grid-games:fifteen-puzzle:v1';
+const soundStorageKey = 'weird-grid-games:sound:v1';
+
 export function FifteenPuzzle() {
-  const [board, setBoard] = useState<Board>(solvedBoard);
-  const [moves, setMoves] = useState(0);
-  const [message, setMessage] = useState('Shuffle the board, then put the numbers back in order.');
+  const initialPuzzle = useMemo(readSavedPuzzle, []);
+  const [board, setBoard] = useState<Board>(() => initialPuzzle?.board || solvedBoard);
+  const [moves, setMoves] = useState(() => initialPuzzle?.moves || 0);
+  const [message, setMessage] = useState(() =>
+    initialPuzzle
+      ? 'Welcome back. Your puzzle waited for you.'
+      : 'Shuffle the board, then put the numbers back in order.',
+  );
   const [lastNopeIndex, setLastNopeIndex] = useState<number | null>(null);
   const [dragMode, setDragMode] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(readSavedSoundEnabled);
   const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
   const gapRef = useRef<HTMLDivElement>(null);
 
@@ -46,6 +59,14 @@ export function FifteenPuzzle() {
   );
   const emptyIndex = getEmptyIndex(board);
   const won = moves > 0 && isSolved(board);
+
+  useEffect(() => {
+    writeSavedPuzzle({ board, moves });
+  }, [board, moves]);
+
+  useEffect(() => {
+    writeSavedSoundEnabled(soundEnabled);
+  }, [soundEnabled]);
 
   function slideSquare(square: PuzzleSquare) {
     if (!canMove(board, square.index)) {
@@ -292,4 +313,67 @@ function elementsOverlap(firstElement: HTMLElement, secondElement: HTMLElement |
     first.top < second.bottom &&
     first.bottom > second.top
   );
+}
+
+function readSavedPuzzle(): SavedPuzzle | null {
+  try {
+    const rawPuzzle = localStorage.getItem(puzzleStorageKey);
+    if (!rawPuzzle) return null;
+
+    const puzzle: unknown = JSON.parse(rawPuzzle);
+    if (!isRecord(puzzle) || !isSavedBoard(puzzle.board)) return null;
+    if (typeof puzzle.moves !== 'number' || !Number.isInteger(puzzle.moves) || puzzle.moves < 0) {
+      return null;
+    }
+
+    return { board: puzzle.board, moves: puzzle.moves };
+  } catch {
+    return null;
+  }
+}
+
+function writeSavedPuzzle({ board, moves }: SavedPuzzle) {
+  try {
+    if (moves === 0 && isSolved(board)) {
+      localStorage.removeItem(puzzleStorageKey);
+      return;
+    }
+
+    localStorage.setItem(puzzleStorageKey, JSON.stringify({ board, moves }));
+  } catch {
+    // localStorage can be unavailable in private/restricted browsing; the game still works.
+  }
+}
+
+function readSavedSoundEnabled() {
+  try {
+    return localStorage.getItem(soundStorageKey) !== 'false';
+  } catch {
+    return true;
+  }
+}
+
+function writeSavedSoundEnabled(soundEnabled: boolean) {
+  try {
+    localStorage.setItem(soundStorageKey, String(soundEnabled));
+  } catch {
+    // Sound preference persistence is a nice-to-have.
+  }
+}
+
+function isSavedBoard(value: unknown): value is Board {
+  if (!Array.isArray(value) || value.length !== puzzleSize * puzzleSize) return false;
+
+  const expectedTiles = new Set<number | null>(solvedBoard);
+
+  for (const tile of value) {
+    if (tile !== null && (typeof tile !== 'number' || !Number.isInteger(tile))) return false;
+    if (!expectedTiles.delete(tile)) return false;
+  }
+
+  return expectedTiles.size === 0;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
