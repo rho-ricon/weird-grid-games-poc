@@ -110,9 +110,36 @@
   }
 }
 
-@media (max-width: 760px) {
-  .suiteHeader,
+@media (max-width: 1060px) {
+  .suiteMain {
+    grid-template-columns: 1fr;
+  }
+
+  .gameRail {
+    position: static;
+    grid-template-columns: minmax(180px, 280px) minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .futureNote {
+    max-width: 34rem;
+  }
+
+  .gameStage {
+    min-height: auto;
+  }
+
   .gameStageHeader {
+    display: grid;
+  }
+
+  .gameStageHeader p:last-child {
+    max-width: 42rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .suiteHeader {
     display: grid;
   }
 
@@ -120,11 +147,7 @@
     width: fit-content;
   }
 
-  .suiteMain {
-    grid-template-columns: 1fr;
-  }
-
   .gameRail {
-    position: static;
+    grid-template-columns: 1fr;
   }
 }
