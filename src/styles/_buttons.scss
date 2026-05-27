@@ -13,6 +13,10 @@
     background: $blue;
   }
 
+  &[data-active='true'] {
+    background: $pink;
+  }
+
   &:focus-visible {
     @include focus-ring;
   }

@@ -9,6 +9,8 @@
 }
 
 .puzzleBoardCard {
+  display: grid;
+  place-items: center;
   border: $border;
   border-radius: 32px;
   background:
@@ -92,6 +94,7 @@
     justify-items: center;
   }
 
+  .puzzleBoardCard,
   .puzzlePanel {
     width: min(100%, 420px);
     box-sizing: border-box;

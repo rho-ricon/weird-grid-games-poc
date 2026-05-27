@@ -1,10 +1,20 @@
 @use 'tokens' as *;
 
-.squareGrid {
+.squareGrid,
+.slidingBoard {
   --square-size: #{$square-size};
+  --square-gap: clamp(5px, 1vw, 9px);
+}
 
+.squareGrid {
   display: grid;
-  gap: clamp(5px, 1vw, 9px);
+  gap: var(--square-gap);
+}
+
+.slidingBoard {
+  position: relative;
+  width: calc((var(--square-size) * 4) + (var(--square-gap) * 3));
+  height: calc((var(--square-size) * 4) + (var(--square-gap) * 3));
 }
 
 .square {
@@ -23,7 +33,25 @@
   line-height: 1;
   padding: 0;
   user-select: none;
-  @include pressable;
+  box-shadow: $small-shadow;
+  transition:
+    background 120ms ease,
+    box-shadow 120ms ease,
+    translate 120ms ease,
+    rotate 120ms ease;
+
+  &:hover,
+  &:focus-visible {
+    box-shadow: $shadow;
+    translate: -2px -2px;
+    rotate: -1deg;
+  }
+
+  &:active {
+    box-shadow: 1px 1px 0 $ink;
+    translate: 0 0;
+    rotate: 0deg;
+  }
 
   &:focus-visible {
     @include focus-ring;
@@ -41,6 +69,40 @@
     background: $red;
     animation: nope 160ms linear 2;
   }
+
+  &[data-draggable='true'] {
+    cursor: grab;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+}
+
+.slidingTile,
+.boardSpace {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform: translate(
+    calc(var(--tile-column) * (var(--square-size) + var(--square-gap))),
+    calc(var(--tile-row) * (var(--square-size) + var(--square-gap)))
+  );
+}
+
+.slidingTile {
+  transition:
+    transform 180ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 120ms ease,
+    box-shadow 120ms ease,
+    translate 120ms ease,
+    rotate 120ms ease;
+
+  &:hover,
+  &:focus-visible,
+  &[data-status='nope'] {
+    z-index: 2;
+  }
 }
 
 .squareEmpty {
@@ -49,7 +111,6 @@
     $purple;
   cursor: default;
   box-shadow: inset 0 0 0 6px rgb(18 16 24 / 18%);
-  transform: none;
 
   &::before {
     content: '🌙';
@@ -60,17 +121,24 @@
   &:focus-visible,
   &:active {
     box-shadow: inset 0 0 0 6px rgb(18 16 24 / 18%);
-    transform: none;
+    translate: 0 0;
+    rotate: 0deg;
   }
+}
+
+.boardSpace {
+  transition: none;
 }
 
 @keyframes nope {
   0%,
   100% {
-    transform: translate(0, 0);
+    translate: 0 0;
+    rotate: 0deg;
   }
 
   50% {
-    transform: translate(4px, 0) rotate(2deg);
+    translate: 4px 0;
+    rotate: 2deg;
   }
 }
