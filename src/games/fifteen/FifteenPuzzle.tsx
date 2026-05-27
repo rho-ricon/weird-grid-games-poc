@@ -37,9 +37,10 @@ export function FifteenPuzzle() {
 
   const squares = useMemo(
     () =>
-      board.flatMap((tile, index) =>
-        tile === null ? [] : [{ tile, index } satisfies PuzzleSquare],
-      ),
+      Array.from({ length: puzzleSize * puzzleSize - 1 }, (_, tileIndex) => {
+        const tile = tileIndex + 1;
+        return { tile, index: board.indexOf(tile) } satisfies PuzzleSquare;
+      }),
     [board],
   );
   const emptyIndex = getEmptyIndex(board);
