@@ -1,4 +1,5 @@
 import { type CSSProperties, type PointerEvent, useMemo, useRef, useState } from 'react';
+import { playTilePress } from '../../utils/sound';
 import {
   type Board,
   canMove,
@@ -31,6 +32,7 @@ export function FifteenPuzzle() {
   const [message, setMessage] = useState('Shuffle the board, then put the numbers back in order.');
   const [lastNopeIndex, setLastNopeIndex] = useState<number | null>(null);
   const [dragMode, setDragMode] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
   const [activeDrag, setActiveDrag] = useState<ActiveDrag | null>(null);
   const gapRef = useRef<HTMLDivElement>(null);
 
@@ -99,6 +101,20 @@ export function FifteenPuzzle() {
         ? 'Drag mode! Drag any number into the moon gap.'
         : 'Click mode is back. Tap a square touching the gap.',
     );
+  }
+
+  function toggleSound() {
+    const nextSoundEnabled = !soundEnabled;
+    setSoundEnabled(nextSoundEnabled);
+    setMessage(nextSoundEnabled ? 'Tiny bloops are on.' : 'Quiet mode.');
+  }
+
+  function pressSquare(square: PuzzleSquare, event: PointerEvent<HTMLButtonElement>) {
+    if (event.button === 0 && soundEnabled) {
+      playTilePress();
+    }
+
+    startDrag(square, event);
   }
 
   function startDrag(square: PuzzleSquare, event: PointerEvent<HTMLButtonElement>) {
@@ -195,7 +211,7 @@ export function FifteenPuzzle() {
 
                   slideSquare(square);
                 }}
-                onPointerDown={(event) => startDrag(square, event)}
+                onPointerDown={(event) => pressSquare(square, event)}
                 onPointerMove={(event) => moveDrag(square, event)}
                 onPointerUp={(event) => endDrag(square, event)}
                 onPointerCancel={(event) => cancelDrag(square, event)}
@@ -235,9 +251,19 @@ export function FifteenPuzzle() {
             className="actionButton"
             type="button"
             data-active={dragMode ? 'true' : undefined}
+            aria-pressed={dragMode}
             onClick={toggleDragMode}
           >
             {dragMode ? 'Drag: on' : 'Drag mode'}
+          </button>
+          <button
+            className="actionButton"
+            type="button"
+            data-active={soundEnabled ? 'true' : undefined}
+            aria-pressed={soundEnabled}
+            onClick={toggleSound}
+          >
+            {soundEnabled ? 'Sound: on' : 'Sound: off'}
           </button>
         </div>
       </aside>

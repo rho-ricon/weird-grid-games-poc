@@ -10,7 +10,8 @@ The first game is a minimal **15 Puzzle**:
 - 15 numbered squares and one moon gap,
 - click a square next to the gap to slide it,
 - shuffle/reset buttons,
-- move counter and solved message.
+- move counter and solved message,
+- optional tiny synthesized tile-press sound.
 
 The app is intentionally shaped like a future suite, but only one game is active for now.
 
