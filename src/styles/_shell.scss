@@ -66,8 +66,12 @@
   border-radius: 18px;
   background: $paper;
   padding: 12px;
-  cursor: default;
+  cursor: pointer;
   text-align: left;
+  transition:
+    box-shadow 120ms ease,
+    transform 120ms ease,
+    background 120ms ease;
 
   span {
     font-weight: 950;
@@ -76,6 +80,16 @@
   small {
     color: $muted;
     font-weight: 800;
+  }
+
+  &:hover,
+  &:focus-visible {
+    box-shadow: $small-shadow;
+    transform: translate(-1px, -1px);
+  }
+
+  &:focus-visible {
+    @include focus-ring;
   }
 
   &[data-active='true'] {

@@ -12,12 +12,17 @@
 }
 
 .slidingBoard {
-  --tile-size: calc((100% - (var(--square-gap) * 3)) / 4);
+  --board-size: 4;
+  --tile-size: calc((100% - (var(--square-gap) * (var(--board-size) - 1))) / var(--board-size));
 
   position: relative;
-  width: calc((#{$square-size} * 4) + (var(--square-gap) * 3));
+  width: calc((#{$square-size} * var(--board-size)) + (var(--square-gap) * (var(--board-size) - 1)));
   max-width: 100%;
   aspect-ratio: 1;
+
+  &[data-board-size='3'] {
+    --square-size: clamp(76px, 18vw, 110px);
+  }
 }
 
 .square {
