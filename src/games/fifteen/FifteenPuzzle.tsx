@@ -8,14 +8,13 @@ import {
   puzzleSize,
   shuffleBoard,
   solvedBoard,
+  swapTileWithEmpty,
 } from './puzzle';
 
 type PuzzleSquare = {
   tile: number;
   index: number;
 };
-
-type MoveGesture = 'click' | 'drag';
 
 type ActiveDrag = {
   tile: number;
@@ -46,18 +45,22 @@ export function FifteenPuzzle() {
   const emptyIndex = getEmptyIndex(board);
   const won = moves > 0 && isSolved(board);
 
-  function slideSquare(square: PuzzleSquare, gesture: MoveGesture = 'click') {
+  function slideSquare(square: PuzzleSquare) {
     if (!canMove(board, square.index)) {
       setLastNopeIndex(square.index);
-      setMessage(
-        gesture === 'drag'
-          ? 'That tile cannot reach the moon. Drag one touching the gap.'
-          : 'That square is stuck. Try one touching the blank space.',
-      );
+      setMessage('That square is stuck. Try one touching the blank space.');
       return;
     }
 
-    const nextBoard = moveTile(board, square.index);
+    applyMove(moveTile(board, square.index), 'Nice slide.');
+  }
+
+  function dropSquare(square: PuzzleSquare) {
+    const tileIndex = board.indexOf(square.tile);
+    applyMove(swapTileWithEmpty(board, tileIndex), 'Nice drop.');
+  }
+
+  function applyMove(nextBoard: Board, nextMessage: string) {
     const nextMoves = moves + 1;
 
     setBoard(nextBoard);
@@ -66,9 +69,7 @@ export function FifteenPuzzle() {
     setMessage(
       isSolved(nextBoard)
         ? `You solved it in ${nextMoves} move${nextMoves === 1 ? '' : 's'}!`
-        : gesture === 'drag'
-          ? 'Nice drop.'
-          : 'Nice slide.',
+        : nextMessage,
     );
   }
 
@@ -95,7 +96,7 @@ export function FifteenPuzzle() {
     setActiveDrag(null);
     setMessage(
       nextDragMode
-        ? 'Drag mode! Drag a number into the moon gap.'
+        ? 'Drag mode! Drag any number into the moon gap.'
         : 'Click mode is back. Tap a square touching the gap.',
     );
   }
@@ -135,11 +136,12 @@ export function FifteenPuzzle() {
     if (activeDrag?.tile !== square.tile || activeDrag.pointerId !== event.pointerId) return;
 
     event.preventDefault();
+    const droppedOnGap = elementsOverlap(event.currentTarget, gapRef.current);
+
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
-    const droppedOnGap = elementsOverlap(event.currentTarget, gapRef.current);
     setActiveDrag(null);
 
     if (!droppedOnGap) {
@@ -147,8 +149,7 @@ export function FifteenPuzzle() {
       return;
     }
 
-    const tileIndex = board.indexOf(square.tile);
-    slideSquare({ tile: square.tile, index: tileIndex }, 'drag');
+    dropSquare(square);
   }
 
   function cancelDrag(square: PuzzleSquare, event: PointerEvent<HTMLButtonElement>) {
@@ -174,11 +175,14 @@ export function FifteenPuzzle() {
           {squares.map((square) => {
             const movable = canMove(board, square.index);
             const isDragging = activeDrag?.tile === square.tile;
+            const canInteract = dragMode || movable;
 
             return (
               <button
                 className="square slidingTile"
-                data-status={square.index === lastNopeIndex ? 'nope' : movable ? 'movable' : 'tile'}
+                data-status={
+                  square.index === lastNopeIndex ? 'nope' : canInteract ? 'movable' : 'tile'
+                }
                 data-draggable={dragMode ? 'true' : undefined}
                 data-dragging={isDragging ? 'true' : undefined}
                 type="button"
@@ -196,7 +200,7 @@ export function FifteenPuzzle() {
                 onPointerUp={(event) => endDrag(square, event)}
                 onPointerCancel={(event) => cancelDrag(square, event)}
                 key={square.tile}
-                aria-label={`Tile ${square.tile}${movable ? ', can slide' : ''}`}
+                aria-label={`Tile ${square.tile}${canInteract ? ', can move' : ''}`}
               >
                 {square.tile}
               </button>

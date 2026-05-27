@@ -27,7 +27,14 @@ export function canMove(board: Board, tileIndex: number) {
 export function moveTile(board: Board, tileIndex: number) {
   if (!canMove(board, tileIndex)) return board;
 
+  return swapTileWithEmpty(board, tileIndex);
+}
+
+export function swapTileWithEmpty(board: Board, tileIndex: number) {
   const emptyIndex = getEmptyIndex(board);
+
+  if (board[tileIndex] === null || emptyIndex < 0) return board;
+
   const nextBoard = [...board];
   nextBoard[emptyIndex] = board[tileIndex];
   nextBoard[tileIndex] = null;
