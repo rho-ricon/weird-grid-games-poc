@@ -1,0 +1,76 @@
+@use 'tokens' as *;
+
+.squareGrid {
+  --square-size: #{$square-size};
+
+  display: grid;
+  gap: clamp(5px, 1vw, 9px);
+}
+
+.square {
+  width: var(--square-size);
+  height: var(--square-size);
+  box-sizing: border-box;
+  display: grid;
+  place-items: center;
+  border: $border;
+  border-radius: 20px;
+  background: $paper-soft;
+  color: $ink;
+  cursor: pointer;
+  font-size: clamp(1.6rem, 6vw, 2.8rem);
+  font-weight: 1000;
+  line-height: 1;
+  padding: 0;
+  user-select: none;
+  @include pressable;
+
+  &:focus-visible {
+    @include focus-ring;
+  }
+
+  &[data-status='movable'] {
+    background: $green;
+  }
+
+  &[data-status='tile'] {
+    background: $blue;
+  }
+
+  &[data-status='nope'] {
+    background: $red;
+    animation: nope 160ms linear 2;
+  }
+}
+
+.squareEmpty {
+  background:
+    radial-gradient(circle, rgb(255 255 255 / 65%) 0 28%, transparent 29%),
+    $purple;
+  cursor: default;
+  box-shadow: inset 0 0 0 6px rgb(18 16 24 / 18%);
+  transform: none;
+
+  &::before {
+    content: '🌙';
+    font-size: clamp(1.4rem, 5vw, 2.5rem);
+  }
+
+  &:hover,
+  &:focus-visible,
+  &:active {
+    box-shadow: inset 0 0 0 6px rgb(18 16 24 / 18%);
+    transform: none;
+  }
+}
+
+@keyframes nope {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+
+  50% {
+    transform: translate(4px, 0) rotate(2deg);
+  }
+}

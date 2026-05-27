@@ -1,0 +1,41 @@
+$ink: #121018;
+$paper: #fffaf0;
+$paper-soft: #fff3c4;
+$blue: #76d7ff;
+$pink: #ff8bd3;
+$green: #87f59c;
+$yellow: #ffe066;
+$purple: #bca7ff;
+$orange: #ffb35c;
+$red: #ff5f6d;
+$muted: #6d6474;
+
+$border: 3px solid $ink;
+$shadow: 6px 6px 0 $ink;
+$small-shadow: 3px 3px 0 $ink;
+$square-size: clamp(58px, 12vw, 86px);
+
+@mixin focus-ring {
+  outline: 3px solid $purple;
+  outline-offset: 3px;
+}
+
+@mixin pressable {
+  box-shadow: $small-shadow;
+  transform: translate(-1px, -1px);
+  transition:
+    box-shadow 120ms ease,
+    transform 120ms ease,
+    background 120ms ease;
+
+  &:hover,
+  &:focus-visible {
+    box-shadow: $shadow;
+    transform: translate(-3px, -3px) rotate(-1deg);
+  }
+
+  &:active {
+    box-shadow: 1px 1px 0 $ink;
+    transform: translate(0, 0);
+  }
+}
