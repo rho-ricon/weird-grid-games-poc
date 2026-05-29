@@ -1,6 +1,6 @@
 import { type CSSProperties, useEffect, useMemo, useState } from 'react';
 import { playBlockedMove, playTilePress } from '../../utils/sound';
-import { chooseComputerMove } from './ai';
+import { type ComputerDifficulty, chooseComputerMove } from './ai';
 import {
   applyMove,
   checkersSize,
@@ -14,7 +14,13 @@ import {
   type Side,
   winnerFor,
 } from './rules';
-import { type ComputerSide, readSavedCheckers, writeSavedCheckers } from './storage';
+import {
+  type ComputerSide,
+  readComputerTrainingUnlocked,
+  readSavedCheckers,
+  unlockComputerTraining,
+  writeSavedCheckers,
+} from './storage';
 
 const openingSide: Side = 'red';
 const computerMoveDelay = 460;
@@ -29,6 +35,9 @@ export function Checkers() {
   const [computerSide, setComputerSide] = useState<ComputerSide>(
     () => savedGame?.computerSide ?? null,
   );
+  const [computerTrainingUnlocked, setComputerTrainingUnlocked] = useState(
+    readComputerTrainingUnlocked,
+  );
   const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
   const [mustContinuePieceId, setMustContinuePieceId] = useState<string | null>(null);
   const [message, setMessage] = useState(() =>
@@ -38,6 +47,7 @@ export function Checkers() {
   );
 
   const isComputerTurn = computerSide === turn && !winner;
+  const computerDifficulty: ComputerDifficulty = computerTrainingUnlocked ? 'trained' : 'gentle';
   const legalMoves = useMemo(
     () => (winner ? [] : legalMovesForSide(pieces, turn, mustContinuePieceId || undefined)),
     [mustContinuePieceId, pieces, turn, winner],
@@ -52,7 +62,12 @@ export function Checkers() {
   useEffect(() => {
     if (!isComputerTurn) return;
 
-    const move = chooseComputerMove(pieces, turn, mustContinuePieceId || undefined);
+    const move = chooseComputerMove(
+      pieces,
+      turn,
+      mustContinuePieceId || undefined,
+      computerDifficulty,
+    );
 
     if (!move) {
       setMessage(`${labelFor(turn)} is stuck.`);
@@ -75,7 +90,7 @@ export function Checkers() {
     );
 
     return () => window.clearTimeout(timer);
-  }, [isComputerTurn, mustContinuePieceId, pieces, turn]);
+  }, [computerDifficulty, isComputerTurn, mustContinuePieceId, pieces, turn]);
 
   function reset() {
     setPieces(initialPieces());
@@ -179,9 +194,22 @@ export function Checkers() {
     setMoves(nextMoves);
 
     if (nextWinner) {
+      const unlockedTraining =
+        computerSide === 'black' && nextWinner === openingSide && !computerTrainingUnlocked;
+
       setWinner(nextWinner);
       setSelectedPieceId(null);
       setMustContinuePieceId(null);
+
+      if (unlockedTraining) {
+        unlockComputerTraining();
+        setComputerTrainingUnlocked(true);
+        setMessage(
+          `${labelFor(nextWinner)} wins in ${nextMoves} move${nextMoves === 1 ? '' : 's'}! Black is studying the board...`,
+        );
+        return;
+      }
+
       setMessage(`${labelFor(nextWinner)} wins in ${nextMoves} move${nextMoves === 1 ? '' : 's'}!`);
       return;
     }

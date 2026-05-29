@@ -11,6 +11,7 @@ export type SavedCheckers = {
 };
 
 const checkersStorageKey = 'weird-grid-games:checkers:v1';
+const computerTrainingStorageKey = 'weird-grid-games:checkers:computer-trained';
 
 export function readSavedCheckers(): SavedCheckers | null {
   try {
@@ -58,6 +59,26 @@ export function writeSavedCheckers(game: SavedCheckers) {
     localStorage.setItem(checkersStorageKey, JSON.stringify(game));
   } catch {
     // localStorage can be unavailable in private/restricted browsing; the game still works.
+  }
+}
+
+export function readComputerTrainingUnlocked() {
+  try {
+    if (typeof localStorage === 'undefined') return false;
+
+    return localStorage.getItem(computerTrainingStorageKey) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function unlockComputerTraining() {
+  try {
+    if (typeof localStorage === 'undefined') return;
+
+    localStorage.setItem(computerTrainingStorageKey, 'true');
+  } catch {
+    // The secret difficulty is a treat, not a requirement.
   }
 }
 
