@@ -1,4 +1,4 @@
-import { type ComponentType, useState } from 'react';
+import { type ComponentType, useEffect, useState } from 'react';
 
 export type GameDefinition = {
   id: string;
@@ -8,6 +8,8 @@ export type GameDefinition = {
   component: ComponentType;
 };
 
+const activeGameStorageKey = 'weird-grid-games:active-game';
+
 export function GameShell({
   games,
   initialGameId,
@@ -15,9 +17,15 @@ export function GameShell({
   games: GameDefinition[];
   initialGameId?: string;
 }) {
-  const [activeGameId, setActiveGameId] = useState(initialGameId || games[0]?.id);
+  const [activeGameId, setActiveGameId] = useState(
+    () => readSavedActiveGameId(games) || initialGameId || games[0]?.id,
+  );
   const activeGame = games.find((game) => game.id === activeGameId) || games[0];
   const ActiveGame = activeGame.component;
+
+  useEffect(() => {
+    writeSavedActiveGameId(activeGame.id);
+  }, [activeGame.id]);
   const gameCountLabel = `${games.length} game${games.length === 1 ? '' : 's'} now`;
 
   return (
@@ -60,4 +68,24 @@ export function GameShell({
       </main>
     </div>
   );
+}
+
+function readSavedActiveGameId(games: GameDefinition[]) {
+  try {
+    const savedGameId = localStorage.getItem(activeGameStorageKey);
+
+    if (!savedGameId || !games.some((game) => game.id === savedGameId)) return null;
+
+    return savedGameId;
+  } catch {
+    return null;
+  }
+}
+
+function writeSavedActiveGameId(gameId: string) {
+  try {
+    localStorage.setItem(activeGameStorageKey, gameId);
+  } catch {
+    // localStorage can be unavailable in private/restricted browsing; the suite still works.
+  }
 }
