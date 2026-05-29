@@ -1,4 +1,5 @@
 import type { GameDefinition } from '../components/GameShell';
+import { Checkers } from './checkers/Checkers';
 import { EightPuzzle } from './eight/EightPuzzle';
 import { FifteenPuzzle } from './fifteen/FifteenPuzzle';
 
@@ -17,5 +18,13 @@ export const games: GameDefinition[] = [
     tagline: 'bigger number slide',
     description: 'A bigger 4×4 sliding puzzle. Same moon gap, more square chaos.',
     component: FifteenPuzzle,
+  },
+  {
+    id: 'checkers',
+    title: 'Checkers',
+    tagline: 'two-player jumps',
+    description:
+      'A local two-player checkerboard with required jumps, kings, and very serious tiny circles.',
+    component: Checkers,
   },
 ];
