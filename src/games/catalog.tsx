@@ -22,9 +22,9 @@ export const games: GameDefinition[] = [
   {
     id: 'checkers',
     title: 'Checkers',
-    tagline: 'two-player jumps',
+    tagline: 'jumps and tiny tactics',
     description:
-      'A local two-player checkerboard with required jumps, kings, and very serious tiny circles.',
+      'A local checkerboard with required jumps, kings, optional computer Black, and very serious tiny circles.',
     component: Checkers,
   },
 ];

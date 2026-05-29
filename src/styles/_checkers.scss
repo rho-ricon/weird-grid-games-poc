@@ -23,20 +23,25 @@
 .checkersBoard {
   --checker-size: clamp(38px, 6vw, 58px);
   --checker-gap: 3px;
+  --checker-cell-size: calc((100% - (var(--checker-gap) * 7)) / 8);
 
+  position: relative;
   display: grid;
-  grid-template-columns: repeat(8, var(--checker-size));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: var(--checker-gap);
+  width: calc((var(--checker-size) * 8) + (var(--checker-gap) * 7));
+  max-width: 100%;
 }
 
 .checkerSquare {
-  width: var(--checker-size);
-  height: var(--checker-size);
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
   box-sizing: border-box;
   display: grid;
   place-items: center;
   border: 2px solid $ink;
-  border-radius: 13px;
+  border-radius: 9px;
   background: rgb(255 250 240 / 78%);
   padding: 0;
   position: relative;
@@ -57,7 +62,6 @@
     border: 3px solid $ink;
     border-radius: 999px;
     background: $green;
-    box-shadow: $small-shadow;
   }
 
   &[data-capture='true']::after {
@@ -75,25 +79,39 @@
 }
 
 .checkerPiece {
-  width: 76%;
-  height: 76%;
+  position: absolute;
+  top: calc(
+    (var(--checker-row) * (var(--checker-cell-size) + var(--checker-gap))) +
+    (var(--checker-cell-size) * 0.5)
+  );
+  left: calc(
+    (var(--checker-column) * (var(--checker-cell-size) + var(--checker-gap))) +
+    (var(--checker-cell-size) * 0.5)
+  );
+  z-index: 1;
+  pointer-events: none;
+  width: calc(var(--checker-cell-size) * 0.76);
+  height: calc(var(--checker-cell-size) * 0.76);
   display: grid;
   place-items: center;
   border: 3px solid $ink;
   border-radius: 999px;
   box-shadow:
     inset 0 -7px 0 rgb(18 16 24 / 18%),
-    $small-shadow;
+    2px 2px 0 rgb(18 16 24 / 85%);
   color: $paper;
   font-size: clamp(1rem, 3vw, 1.45rem);
   font-weight: 1000;
   line-height: 1;
+  transform: translate(calc(-50% - 1px), calc(-50% - 1px));
   transition:
+    top 190ms cubic-bezier(0.22, 1, 0.36, 1),
+    left 190ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 160ms ease,
     box-shadow 160ms ease;
 
   &[data-side='black'] {
-    background: $ink;
+    background: #2b2638;
     color: $yellow;
   }
 
@@ -103,7 +121,7 @@
   }
 
   &[data-king='true'] {
-    transform: rotate(-8deg) scale(1.06);
+    transform: translate(calc(-50% - 1px), calc(-50% - 1px)) rotate(-8deg) scale(1.06);
   }
 }
 

@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type CSSProperties, useEffect, useMemo, useState } from 'react';
 import { playBlockedMove, playTilePress } from '../../utils/sound';
+import { chooseComputerMove } from './ai';
 import {
   applyMove,
   checkersSize,
@@ -13,30 +14,30 @@ import {
   type Side,
   winnerFor,
 } from './rules';
+import { type ComputerSide, readSavedCheckers, writeSavedCheckers } from './storage';
 
-type SavedCheckers = {
-  pieces: Piece[];
-  turn: Side;
-  moves: number;
-  winner: Side | null;
-};
-
-const checkersStorageKey = 'weird-grid-games:checkers:v1';
+const openingSide: Side = 'red';
+const computerMoveDelay = 460;
+const computerJumpDelay = 320;
 
 export function Checkers() {
   const savedGame = useMemo(readSavedCheckers, []);
   const [pieces, setPieces] = useState<Piece[]>(() => savedGame?.pieces || initialPieces());
-  const [turn, setTurn] = useState<Side>(() => savedGame?.turn || 'black');
+  const [turn, setTurn] = useState<Side>(() => savedGame?.turn || openingSide);
   const [moves, setMoves] = useState(() => savedGame?.moves || 0);
   const [winner, setWinner] = useState<Side | null>(() => savedGame?.winner || null);
+  const [computerSide, setComputerSide] = useState<ComputerSide>(
+    () => savedGame?.computerSide ?? null,
+  );
   const [selectedPieceId, setSelectedPieceId] = useState<string | null>(null);
   const [mustContinuePieceId, setMustContinuePieceId] = useState<string | null>(null);
   const [message, setMessage] = useState(() =>
     savedGame
       ? 'Welcome back to the checkerboard.'
-      : 'Black goes first. Click a piece, then a glowing square.',
+      : 'Red goes first. Click a piece, then a glowing square.',
   );
 
+  const isComputerTurn = computerSide === turn && !winner;
   const legalMoves = useMemo(
     () => (winner ? [] : legalMovesForSide(pieces, turn, mustContinuePieceId || undefined)),
     [mustContinuePieceId, pieces, turn, winner],
@@ -45,17 +46,61 @@ export function Checkers() {
   const captureRequired = legalMoves.some((move) => move.capturedPieceId);
 
   useEffect(() => {
-    writeSavedCheckers({ pieces, turn, moves, winner });
-  }, [moves, pieces, turn, winner]);
+    writeSavedCheckers({ pieces, turn, moves, winner, computerSide });
+  }, [computerSide, moves, pieces, turn, winner]);
+
+  useEffect(() => {
+    if (!isComputerTurn) return;
+
+    const move = chooseComputerMove(pieces, turn, mustContinuePieceId || undefined);
+
+    if (!move) {
+      setMessage(`${labelFor(turn)} is stuck.`);
+      return;
+    }
+
+    setSelectedPieceId(move.pieceId);
+    setMessage(
+      mustContinuePieceId
+        ? `${labelFor(turn)} lines up another jump...`
+        : `${labelFor(turn)} is thinking...`,
+    );
+
+    const timer = window.setTimeout(
+      () => {
+        playTilePress();
+        playMove(move, 'computer');
+      },
+      mustContinuePieceId ? computerJumpDelay : computerMoveDelay,
+    );
+
+    return () => window.clearTimeout(timer);
+  }, [isComputerTurn, mustContinuePieceId, pieces, turn]);
 
   function reset() {
     setPieces(initialPieces());
-    setTurn('black');
+    setTurn(openingSide);
     setMoves(0);
     setWinner(null);
     setSelectedPieceId(null);
     setMustContinuePieceId(null);
-    setMessage('Fresh board. Black goes first.');
+    setMessage(
+      computerSide
+        ? 'Fresh board. Red goes first; the computer has Black.'
+        : 'Fresh board. Red goes first.',
+    );
+  }
+
+  function toggleComputerSide() {
+    const nextComputerSide: ComputerSide = computerSide ? null : 'black';
+
+    setComputerSide(nextComputerSide);
+    setSelectedPieceId(null);
+    setMessage(
+      nextComputerSide
+        ? 'Computer has Black. Red still goes first.'
+        : 'Two-player mode. Share the board.',
+    );
   }
 
   function handleSquare(row: number, column: number) {
@@ -67,13 +112,19 @@ export function Checkers() {
       return;
     }
 
+    if (isComputerTurn) {
+      playBlockedMove();
+      setMessage(`${labelFor(turn)} is thinking.`);
+      return;
+    }
+
     const move = selectedMoves.find(
       (candidate) => candidate.toRow === row && candidate.toColumn === column,
     );
 
     if (move) {
       playTilePress();
-      playMove(move);
+      playMove(move, 'human');
       return;
     }
 
@@ -119,7 +170,7 @@ export function Checkers() {
     );
   }
 
-  function playMove(move: Move) {
+  function playMove(move: Move, actor: 'human' | 'computer') {
     const result = applyMove(pieces, move);
     const nextMoves = moves + 1;
     const nextWinner = winnerFor(result.pieces, turn);
@@ -141,7 +192,11 @@ export function Checkers() {
       if (followUpJumps.length > 0) {
         setSelectedPieceId(result.movedPiece.id);
         setMustContinuePieceId(result.movedPiece.id);
-        setMessage('Jump again with the same piece!');
+        setMessage(
+          actor === 'computer'
+            ? `${labelFor(turn)} keeps jumping...`
+            : 'Jump again with the same piece!',
+        );
         return;
       }
     }
@@ -150,7 +205,11 @@ export function Checkers() {
     setTurn(nextTurn);
     setSelectedPieceId(null);
     setMustContinuePieceId(null);
-    setMessage(`${labelFor(nextTurn)}'s turn.`);
+    setMessage(
+      nextTurn === computerSide
+        ? `${labelFor(nextTurn)} is thinking...`
+        : `${labelFor(nextTurn)}'s turn.`,
+    );
   }
 
   return (
@@ -178,19 +237,21 @@ export function Checkers() {
                 onClick={() => handleSquare(row, column)}
                 key={`${row}-${column}`}
                 aria-label={squareLabel(row, column, piece, legalMove)}
-              >
-                {piece && (
-                  <span
-                    className="checkerPiece"
-                    data-side={piece.side}
-                    data-king={piece.king ? 'true' : undefined}
-                  >
-                    {piece.king ? '★' : ''}
-                  </span>
-                )}
-              </button>
+              />
             );
           })}
+          {pieces.map((piece) => (
+            <span
+              className="checkerPiece"
+              data-side={piece.side}
+              data-king={piece.king ? 'true' : undefined}
+              style={pieceStyle(piece)}
+              aria-hidden="true"
+              key={piece.id}
+            >
+              {piece.king ? '★' : ''}
+            </span>
+          ))}
         </div>
       </div>
 
@@ -198,11 +259,17 @@ export function Checkers() {
         <div>
           <p className="eyebrow">how to play</p>
           <p>
-            Two players share the board. Click a piece, then a glowing square. Jumps are required.
+            {computerSide
+              ? 'You play Red. The computer plays Black. Click a piece, then a glowing square.'
+              : 'Two players share the board. Click a piece, then a glowing square. Jumps are required.'}
           </p>
         </div>
 
-        <div className="turnCard" data-turn={winner || turn}>
+        <div
+          className="turnCard"
+          data-turn={winner || turn}
+          data-computer={isComputerTurn ? 'true' : undefined}
+        >
           <p>{winner ? 'winner' : 'turn'}</p>
           <span>{labelFor(winner || turn)}</span>
         </div>
@@ -220,6 +287,15 @@ export function Checkers() {
           <button className="actionButton" type="button" onClick={reset}>
             Reset
           </button>
+          <button
+            className="actionButton"
+            type="button"
+            data-active={computerSide ? 'true' : undefined}
+            aria-pressed={Boolean(computerSide)}
+            onClick={toggleComputerSide}
+          >
+            {computerSide ? 'Computer: Black' : 'Computer: off'}
+          </button>
         </div>
       </aside>
     </div>
@@ -228,6 +304,13 @@ export function Checkers() {
 
 function labelFor(side: Side) {
   return side === 'black' ? 'Black' : 'Red';
+}
+
+function pieceStyle(piece: Piece) {
+  return {
+    '--checker-row': piece.row,
+    '--checker-column': piece.column,
+  } as CSSProperties;
 }
 
 function squareLabel(
@@ -244,58 +327,4 @@ function squareLabel(
   if (move) return `Move landing on row ${row + 1}, column ${column + 1}`;
 
   return `Square row ${row + 1}, column ${column + 1}`;
-}
-
-function readSavedCheckers(): SavedCheckers | null {
-  try {
-    const rawGame = localStorage.getItem(checkersStorageKey);
-    if (!rawGame) return null;
-
-    const game: unknown = JSON.parse(rawGame);
-    if (!isRecord(game) || !isPieceArray(game.pieces)) return null;
-    if (game.turn !== 'black' && game.turn !== 'red') return null;
-    if (game.winner !== null && game.winner !== 'black' && game.winner !== 'red') return null;
-    if (typeof game.moves !== 'number' || !Number.isInteger(game.moves) || game.moves < 0) {
-      return null;
-    }
-
-    return { pieces: game.pieces, turn: game.turn, moves: game.moves, winner: game.winner };
-  } catch {
-    return null;
-  }
-}
-
-function writeSavedCheckers(game: SavedCheckers) {
-  try {
-    if (game.moves === 0 && !game.winner) {
-      localStorage.removeItem(checkersStorageKey);
-      return;
-    }
-
-    localStorage.setItem(checkersStorageKey, JSON.stringify(game));
-  } catch {
-    // localStorage can be unavailable in private/restricted browsing; the game still works.
-  }
-}
-
-function isPieceArray(value: unknown): value is Piece[] {
-  if (!Array.isArray(value)) return false;
-  const ids = new Set<string>();
-
-  for (const piece of value) {
-    if (!isRecord(piece)) return false;
-    if (typeof piece.id !== 'string' || ids.has(piece.id)) return false;
-    if (piece.side !== 'black' && piece.side !== 'red') return false;
-    if (typeof piece.row !== 'number' || !Number.isInteger(piece.row)) return false;
-    if (typeof piece.column !== 'number' || !Number.isInteger(piece.column)) return false;
-    if (!isPlayableSquare(piece.row, piece.column)) return false;
-    if (typeof piece.king !== 'boolean') return false;
-    ids.add(piece.id);
-  }
-
-  return true;
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
